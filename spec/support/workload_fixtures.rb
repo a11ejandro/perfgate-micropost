@@ -25,26 +25,24 @@ module WorkloadFixtures
     epoch = Time.utc(2024, 1, 1)
 
     users = user_count.times.map do |i|
-      User.create!(
-        name:  "WUser #{i + 1}",
-        email: "wuser#{i + 1}@example.com"
-      )
+      User.find_or_create_by!(email: "wuser#{i + 1}@example.com") do |u|
+        u.name = "WUser #{i + 1}"
+      end
     end
 
     posts = post_count.times.map do |i|
-      Micropost.create!(
-        user:    users[PRNG.rand(users.size)],
-        content: "Workload post #{i + 1}: rails performance test #{PRNG.rand(1000)}. #rails",
-        created_at: epoch + i * 3600,
-        updated_at: epoch + i * 3600
-      )
+      content = "Workload post #{i + 1}: rails performance test #{i}. #rails"
+      Micropost.find_or_create_by!(user: users[PRNG.rand(users.size)], content: content) do |mp|
+        mp.created_at = epoch + i * 3600
+        mp.updated_at = epoch + i * 3600
+      end
     end
 
     comment_count.times do |i|
-      Comment.create!(
+      Comment.find_or_create_by!(
         user:      users[PRNG.rand(users.size)],
         micropost: posts[PRNG.rand(posts.size)],
-        content:   "Workload comment #{i + 1}: great work!"
+        content:   "Workload comment #{i + 1}"
       )
     end
 

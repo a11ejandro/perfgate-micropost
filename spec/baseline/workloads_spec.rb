@@ -13,7 +13,7 @@ require "rails_helper"
 #     bundle exec baseline run --output .baseline/current
 
 RSpec.describe "Baseline workloads", type: :request do
-  before(:all) { WorkloadFixtures.setup }
+  before(:each) { WorkloadFixtures.setup }
 
   # ── microposts.index ──────────────────────────────────────────────────────
 
