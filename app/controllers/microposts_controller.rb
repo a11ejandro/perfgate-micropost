@@ -10,8 +10,8 @@ class MicropostsController < ApplicationController
 
   def show
     @micropost = Micropost.includes(:user).find(params[:id])
+    # REGRESSION: includes(:user) removed from comments — N+1 on comment authors.
     @comments  = @micropost.comments
-                           .includes(:user)
                            .oldest_first
                            .page(params[:page])
                            .per(PER_PAGE)
