@@ -21,9 +21,12 @@ class MicropostsController < ApplicationController
     @query      = params[:q].to_s.strip
     base        = Micropost.includes(:user).newest_first
     @microposts = if @query.present?
-                    base.where("content ILIKE ?", "%#{@query}%")
-                        .page(params[:page])
-                        .per(PER_PAGE)
+                    # REGRESSION: loads all matching records into Ruby then paginates in memory,
+                    # bypassing the database index and Kaminari's SQL LIMIT/OFFSET.
+                    all_matches = base.where("content ILIKE ?", "%#{@query}%").to_a
+                    Kaminari.paginate_array(all_matches)
+                            .page(params[:page])
+                            .per(PER_PAGE)
                   else
                     base.page(params[:page]).per(PER_PAGE)
                   end
