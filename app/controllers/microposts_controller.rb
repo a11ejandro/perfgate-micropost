@@ -2,8 +2,8 @@ class MicropostsController < ApplicationController
   PER_PAGE = 20
 
   def index
-    @microposts = Micropost.includes(:user)
-                           .newest_first
+    # REGRESSION: eager loading removed — triggers N+1 for user on every row.
+    @microposts = Micropost.newest_first
                            .page(params[:page])
                            .per(PER_PAGE)
   end
