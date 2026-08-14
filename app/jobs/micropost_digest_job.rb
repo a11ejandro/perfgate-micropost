@@ -1,21 +1,33 @@
 class MicropostDigestJob < ApplicationJob
   queue_as :default
 
-  # Loads recent microposts with authors and comment counts in two queries
-  # (one for microposts+users via includes, one for the limit), then builds
-  # a plain structured digest. No email, no external calls.
+  # REGRESSION: excessive object allocation — serializes each entry to JSON and
+  # parses it back, duplicates the content string, and builds redundant
+  # intermediate hashes. SQL queries remain correct (same as main).
   def perform(limit: 50)
     microposts = Micropost.includes(:user)
                           .newest_first
                           .limit(limit)
 
     entries = microposts.map do |mp|
-      {
+      raw = {
         id:             mp.id,
-        author:         mp.user.name,
-        content:        mp.content,
+        author:         mp.user.name.dup,
+        content:        mp.content.dup,
         comments_count: mp.comments_count,
         created_at:     mp.created_at.iso8601
+      }
+
+      # Unnecessary round-trip through JSON to "normalize" the entry.
+      normalized = JSON.parse(raw.to_json)
+
+      # Rebuild from the normalized copy — doubles intermediate allocations.
+      {
+        id:             normalized["id"],
+        author:         normalized["author"].dup,
+        content:        normalized["content"].dup,
+        comments_count: normalized["comments_count"],
+        created_at:     normalized["created_at"]
       }
     end
 
