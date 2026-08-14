@@ -9,7 +9,8 @@
   <div>
     <strong><%= link_to mp.content.truncate(80), micropost_path(mp) %></strong><br>
     by <%= mp.user.name %> &middot;
-    <%= mp.comments_count %> comment<%= "s" if mp.comments_count != 1 %> &middot;
+    <%# REGRESSION: calls comments.count for every row, bypassing counter cache %>
+    <%= mp.comments.count %> comment<%= "s" if mp.comments.count != 1 %> &middot;
     <%= mp.created_at.strftime("%Y-%m-%d") %>
   </div>
   <hr>
