@@ -11,7 +11,7 @@
   </div>
 <% end %>
 
-<%= paginate @comments %>
+<%= paginate @comments if @comments.respond_to?(:current_page) %>
 
 <h3>Add a comment</h3>
 <%= form_with url: micropost_comments_path(@micropost) do |f| %>

@@ -10,11 +10,10 @@ class MicropostsController < ApplicationController
 
   def show
     @micropost = Micropost.includes(:user).find(params[:id])
+    # REGRESSION: pagination removed — loads ALL comments for the micropost.
     @comments  = @micropost.comments
                            .includes(:user)
                            .oldest_first
-                           .page(params[:page])
-                           .per(PER_PAGE)
   end
 
   def search
