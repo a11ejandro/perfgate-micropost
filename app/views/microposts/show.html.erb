@@ -1,0 +1,22 @@
+<h1><%= @micropost.content.truncate(120) %></h1>
+<p>by <strong><%= @micropost.user.name %></strong> &middot; <%= @micropost.created_at.strftime("%Y-%m-%d") %></p>
+<p><%= @micropost.content %></p>
+
+<h2>Comments (<%= @micropost.comments_count %>)</h2>
+
+<% @comments.each do |c| %>
+  <div>
+    <strong><%= c.user.name %></strong>: <%= c.content %>
+    <small>(<%= c.created_at.strftime("%Y-%m-%d") %>)</small>
+  </div>
+<% end %>
+
+<%= paginate @comments %>
+
+<h3>Add a comment</h3>
+<%= form_with url: micropost_comments_path(@micropost) do |f| %>
+  <%= f.text_area :content, rows: 3 %><br>
+  <%= f.submit "Post comment" %>
+<% end %>
+
+<p><%= link_to "Back", microposts_path %></p>

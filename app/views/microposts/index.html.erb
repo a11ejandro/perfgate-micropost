@@ -1,0 +1,18 @@
+<h1>Microposts</h1>
+
+<%= form_tag search_microposts_path, method: :get do %>
+  <%= text_field_tag :q, params[:q], placeholder: "Search..." %>
+  <%= submit_tag "Search" %>
+<% end %>
+
+<% @microposts.each do |mp| %>
+  <div>
+    <strong><%= link_to mp.content.truncate(80), micropost_path(mp) %></strong><br>
+    by <%= mp.user.name %> &middot;
+    <%= mp.comments_count %> comment<%= "s" if mp.comments_count != 1 %> &middot;
+    <%= mp.created_at.strftime("%Y-%m-%d") %>
+  </div>
+  <hr>
+<% end %>
+
+<%= paginate @microposts %>

@@ -1,0 +1,10 @@
+/.bundle/
+/.byebug_history
+/log/*
+!/log/.keep
+/tmp/
+/vendor/
+.env
+.baseline/
+*.sqlite3
+node_modules/
