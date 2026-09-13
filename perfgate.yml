@@ -13,7 +13,7 @@ metrics:
   memory:       { enabled: false }
 
 comparison:
-  noise_ratio_threshold: true
+  noise_ratio_threshold: 0.5
   practical_thresholds:
     duration:
       warning_percent:    5
@@ -27,7 +27,7 @@ comparison:
       failure_percent:   20
 
 policy:
-  fail_on:          regression
+  fail_on:          fail
   missing_baseline: warn
   incompatible:     warn
 
