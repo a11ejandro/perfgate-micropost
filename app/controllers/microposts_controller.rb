@@ -2,8 +2,8 @@ class MicropostsController < ApplicationController
   PER_PAGE = 20
 
   def index
-    @microposts = Micropost.includes(:user)
-                           .newest_first
+    # Deliberate demo regression: rendering now loads each author separately.
+    @microposts = Micropost.newest_first
                            .page(params[:page])
                            .per(PER_PAGE)
   end
