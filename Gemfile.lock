@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/a11ejandro/perfgate.git
-  revision: 8702e3f5768f8b60ba73af4e1acc56c00815686e
+  revision: c12482ecc57aedf236021462b43425ce0eeb31bb
   branch: main
   specs:
     perfgate (0.1.0)
