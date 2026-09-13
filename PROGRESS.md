@@ -23,8 +23,8 @@ infrastructure beyond PostgreSQL.
 | Database | PostgreSQL 17 via docker-compose | Spec requires Postgres; docker-compose avoids local installation |
 | Docker image | `postgres:17-alpine` | Lightweight; PG 17 matches locally installed `psql` client |
 | DB credentials | user: `baseline`, password: `baseline` | Simple dev default; no secrets in repo |
-| App location | `/Users/alex/Code/baseline-micropost/` | Standalone sibling repo, not nested inside baseline gem |
-| Baseline gem ref | `path: "../baseline/baseline"` | Local path dep during dev; not published |
+| App location | Repository root | Standalone Rails app, separate from the Perfgate gem |
+| Perfgate gem ref | Public Git source pinned by `Gemfile.lock` | Reproducible CI; Bundler local override supported for development |
 | Pagination | kaminari 1.2 | Standard Rails pagination gem; no DSL complexity |
 | Test framework | rspec-rails 6.1, factory_bot_rails 6 | Perfgate requires RSpec; factory_bot for fixtures |
 | DB cleanup | transactional fixtures for normal specs; reset/reseed for Perfgate workloads | Forked workload processes must not inherit Rails test transactions |
@@ -176,7 +176,7 @@ baseline-micropost/
 │   └── regressions.md
 ├── perfgate.yml
 ├── docker-compose.yml        # postgres:17-alpine on 5432
-├── Gemfile                   # baseline path: ../baseline/baseline
+├── Gemfile                   # public Perfgate git source; local override supported
 └── README.md
 ```
 
@@ -191,8 +191,7 @@ baseline-micropost/
 2. **Increase workload fixture dataset** — raise `WorkloadFixtures::DATASET_SIZE` to
    make timing signals more stable and representative (currently 50 posts / 200 comments).
 
-3. **Wire up GitHub Actions** — adapt the example workflow from
-   `baseline/examples/rails-rspec-app` to this app; the docker-compose postgres
-   can be replaced with the `services: postgres:` GHA syntax.
+3. **Wire up GitHub Actions** — done in `.github/workflows/perfgate.yml` with a
+   PostgreSQL service and public Perfgate Git dependency.
 
 4. **Publish gem to RubyGems.org** — switch Gemfile from `path:` to `gem "perfgate", "~> 0.1"`.

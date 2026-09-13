@@ -3,6 +3,8 @@
 A minimal Rails reference application for [Perfgate](https://github.com/a11ejandro/perfgate),
 an open-source CI-native performance assurance tool.
 
+[![Perfgate](https://github.com/a11ejandro/baseline-micropost/actions/workflows/perfgate.yml/badge.svg)](https://github.com/a11ejandro/baseline-micropost/actions/workflows/perfgate.yml)
+
 This application is **not a production social platform**. It exists to provide a
 simple, deterministic environment for demonstrating how Perfgate detects performance
 regressions in Rails applications.
@@ -132,6 +134,46 @@ PERFGATE_DATASET_VERSION=micropost-v1 \
 | `regression/micropost-show-unbounded-comments` | `microposts.show` | Duration and allocations |
 
 See [docs/regressions.md](docs/regressions.md) for code-level detail on each regression.
+
+---
+
+## Public CI demonstration
+
+The GitHub Actions workflow at
+[.github/workflows/perfgate.yml](.github/workflows/perfgate.yml) is the public
+demo entry point:
+
+- [Perfgate workflow runs](https://github.com/a11ejandro/baseline-micropost/actions/workflows/perfgate.yml)
+- Example passing PR: TODO
+- Example SQL regression PR: TODO
+- Example duration/allocation regression PR: TODO
+- Example incompatible workload PR: TODO
+
+To make the demo publicly accessible:
+
+1. Push this app to a **public** GitHub repository, ideally
+   `a11ejandro/baseline-micropost` so the badge and links above work as-is.
+2. Keep the Perfgate gem source public. The Gemfile uses the public Git repository,
+   pinned by `Gemfile.lock`, so CI can bundle without access to a local checkout.
+   To develop both repositories together, use Bundler's ignored local override:
+   `bundle config set --local local.perfgate ../baseline`.
+3. In GitHub, enable **Settings -> Actions -> General -> Allow actions and
+   reusable workflows**. The workflow declares only `contents: read` and
+   `actions: read` permissions.
+4. Run the workflow once on `main`; it uploads the `perfgate-main` artifact.
+5. Open demo PRs from the `regression/*` branches. Public visitors can inspect
+   the PR checks, job logs, and Markdown job summaries without cloning the app.
+
+The workflow uses the GitHub CLI (`gh run list` / `gh run download`) to fetch the
+latest successful `main` run's `perfgate-main` artifact. The very first PR run may
+have no baseline artifact yet; in that case `perfgate run --compare` reports a
+missing baseline warning instead of crashing. GitHub Actions artifacts expire, so
+the README links to workflow runs and PRs as the durable public demonstration,
+not to artifact download URLs.
+
+Rails secret keys, including `config/master.key`, are ignored. The previously
+tracked development key has also been removed from local Git history; replacement
+keys must remain untracked.
 
 ---
 

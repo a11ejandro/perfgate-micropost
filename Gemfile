@@ -43,7 +43,7 @@ group :development, :test do
   gem "rspec-rails", "~> 6.0"
   gem "factory_bot_rails", "~> 6.0"
   gem "database_cleaner-active_record", "~> 2.1"
-  gem "perfgate", path: "../baseline"
+  gem "perfgate", git: "https://github.com/a11ejandro/perfgate.git", branch: "main"
 end
 
 group :development do
@@ -56,4 +56,3 @@ group :development do
   # Speed up commands on slow machines / big apps [https://github.com/rails/spring]
   # gem "spring"
 end
-

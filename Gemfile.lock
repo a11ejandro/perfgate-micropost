@@ -1,5 +1,7 @@
-PATH
-  remote: ../baseline
+GIT
+  remote: https://github.com/a11ejandro/perfgate.git
+  revision: 8702e3f5768f8b60ba73af4e1acc56c00815686e
+  branch: main
   specs:
     perfgate (0.1.0)
       rspec-core (~> 3.12)

@@ -1,0 +1,120 @@
+name: Perfgate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  RAILS_ENV: test
+  DB_HOST: 127.0.0.1
+  DB_PORT: "5432"
+  DB_USERNAME: baseline
+  DB_PASSWORD: baseline
+  PGGSSENCMODE: disable
+  PERFGATE_DATASET_VERSION: micropost-v1
+  PERFGATE_REFERENCE: .perfgate/reference/missing
+
+jobs:
+  perfgate:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: baseline
+          POSTGRES_PASSWORD: baseline
+          POSTGRES_DB: baseline_micropost_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U baseline -d baseline_micropost_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3.4"
+          bundler-cache: true
+
+      - name: Prepare database
+        run: bundle exec rails db:prepare
+
+      - name: Download latest main Perfgate artifact
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .perfgate/reference
+
+          run_id="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow perfgate.yml \
+              --branch main \
+              --status success \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId'
+          )"
+
+          if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
+            gh run download "$run_id" \
+              --repo "$GITHUB_REPOSITORY" \
+              --name perfgate-main \
+              --dir .perfgate/reference
+
+            reference_run=""
+            if [ -d .perfgate/reference/runs ]; then
+              reference_run="$(
+                find .perfgate/reference/runs \
+                  -mindepth 1 \
+                  -maxdepth 1 \
+                  -type d \
+                  -print \
+                  -quit
+              )"
+            fi
+
+            if [ -n "$reference_run" ]; then
+              echo "PERFGATE_REFERENCE=$reference_run" >> "$GITHUB_ENV"
+            else
+              echo "The downloaded artifact contained no Perfgate run."
+            fi
+          else
+            echo "No successful main Perfgate artifact found yet."
+          fi
+
+      - name: Run Perfgate
+        run: |
+          bundle exec perfgate run \
+            --output .perfgate/current \
+            --compare "$PERFGATE_REFERENCE" \
+            --format markdown
+
+      - name: Publish summary
+        if: always()
+        run: |
+          if [ -f .perfgate/current/summary.md ]; then
+            cat .perfgate/current/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Perfgate" >> "$GITHUB_STEP_SUMMARY"
+            echo "No Perfgate summary was generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload default-branch Perfgate artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: perfgate-main
+          path: .perfgate/current
+          include-hidden-files: true
