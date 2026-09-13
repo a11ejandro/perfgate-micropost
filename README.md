@@ -1,10 +1,10 @@
 # Baseline Micropost
 
-A minimal Rails reference application for [Baseline](https://github.com/your-org/baseline),
+A minimal Rails reference application for [Perfgate](https://github.com/a11ejandro/perfgate),
 an open-source CI-native performance assurance tool.
 
 This application is **not a production social platform**. It exists to provide a
-simple, deterministic environment for demonstrating how Baseline detects performance
+simple, deterministic environment for demonstrating how Perfgate detects performance
 regressions in Rails applications.
 
 ---
@@ -17,7 +17,7 @@ dataset of 100 users, 5 000 microposts, and 50 000 comments.
 
 The `main` branch is intentionally correct: no N+1 queries, counter cache in use,
 associations eager-loaded. Eight `regression/*` branches each introduce a single
-isolated performance regression that Baseline is expected to detect.
+isolated performance regression that Perfgate is expected to detect.
 
 ---
 
@@ -54,9 +54,10 @@ bundle exec rails db:seed
 # Run the test suite
 bundle exec rspec
 
-# Run Baseline workloads
-BASELINE_DATASET_VERSION=micropost-v1 \
-  bundle exec baseline run --output .baseline/main
+# Run Perfgate workloads
+PERFGATE_DATASET_VERSION=micropost-v1 \
+  DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
+  bundle exec perfgate run --output .perfgate/main
 ```
 
 Optional: reduce the dataset size for faster local iteration:
@@ -68,9 +69,9 @@ SAMPLE_USERS=10 SAMPLE_MICROPOSTS=100 SAMPLE_COMMENTS=500 \
 
 ---
 
-## Baseline workloads
+## Perfgate workloads
 
-Five stable workload IDs are defined in `spec/baseline/workloads_spec.rb`:
+Five stable workload IDs are defined in `spec/perfgate/workloads_spec.rb`:
 
 | Workload ID | Endpoint / action | What it measures |
 |---|---|---|
@@ -89,7 +90,7 @@ See [docs/workloads.md](docs/workloads.md) for full details.
 The seed is deterministic: `PRNG = Random.new(42)` with a fixed epoch of
 `2024-01-01 00:00:00 UTC`. Repeated seeding produces logically equivalent data.
 
-Set `BASELINE_DATASET_VERSION=micropost-v1` so Baseline can fingerprint the
+Set `PERFGATE_DATASET_VERSION=micropost-v1` so Perfgate can fingerprint the
 dataset and refuse to compare runs built against different data.
 
 See [docs/dataset.md](docs/dataset.md).
@@ -103,15 +104,17 @@ functionally correct; only the performance characteristics change.
 
 ```bash
 # Record a main-branch baseline
-BASELINE_DATASET_VERSION=micropost-v1 \
-  bundle exec baseline run --output .baseline/main
+PERFGATE_DATASET_VERSION=micropost-v1 \
+  DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
+  bundle exec perfgate run --output .perfgate/main
 
 # Switch to a regression branch and compare
 git checkout regression/microposts-index-n-plus-one
-BASELINE_DATASET_VERSION=micropost-v1 \
-  bundle exec baseline run \
-    --output .baseline/candidate \
-    --compare .baseline/main \
+PERFGATE_DATASET_VERSION=micropost-v1 \
+  DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
+  bundle exec perfgate run \
+    --output .perfgate/candidate \
+    --compare .perfgate/main \
     --format markdown
 ```
 
@@ -134,4 +137,4 @@ See [docs/regressions.md](docs/regressions.md) for code-level detail on each reg
 
 ## License
 
-Apache-2.0. See [LICENSE](../baseline/LICENSE) in the Baseline gem repository.
+Apache-2.0. See the [Perfgate license](https://github.com/a11ejandro/perfgate/blob/main/LICENSE).
