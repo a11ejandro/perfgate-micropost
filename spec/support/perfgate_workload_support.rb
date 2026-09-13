@@ -1,10 +1,10 @@
-require "baseline/rspec"
+require "perfgate/rspec"
 
-# Seed stable records used by all Baseline workloads.
+# Seed stable records used by all Perfgate workloads.
 # Runs once before the suite; workload specs reset transactional state between
 # samples via DatabaseCleaner (truncation strategy) so the fixed records are
 # re-inserted before each sample.
-module BaselineWorkloadSupport
+module PerfgateWorkloadSupport
   DATASET_SIZE = 50
 
   def self.seed_workload_data

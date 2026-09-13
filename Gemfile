@@ -43,7 +43,7 @@ group :development, :test do
   gem "rspec-rails", "~> 6.0"
   gem "factory_bot_rails", "~> 6.0"
   gem "database_cleaner-active_record", "~> 2.1"
-  gem "baseline", path: "../baseline/baseline"
+  gem "perfgate", path: "../baseline"
 end
 
 group :development do

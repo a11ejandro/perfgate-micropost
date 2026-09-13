@@ -32,4 +32,4 @@ policy:
   incompatible:     warn
 
 storage:
-  path: .baseline
+  path: .perfgate

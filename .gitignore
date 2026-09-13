@@ -6,5 +6,6 @@
 /vendor/
 .env
 .baseline/
+.perfgate/
 *.sqlite3
 node_modules/

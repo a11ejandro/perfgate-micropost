@@ -23,7 +23,7 @@ Micropost.newest_first.page(1).per(20)
 **Effect:** Each row in the index triggers a `SELECT users WHERE id = ?` for
 the author. With 20 rows per page, this adds ~20 extra queries.
 
-**Expected Baseline signal:** `microposts.index` — sql_count increases, sql_duration increases.
+**Expected Perfgate signal:** `microposts.index` — sql_count increases, sql_duration increases.
 
 ---
 
@@ -43,7 +43,7 @@ the author. With 20 rows per page, this adds ~20 extra queries.
 
 **Effect:** Each comment on the page triggers a separate author query.
 
-**Expected Baseline signal:** `microposts.show` — sql_count increases with page size.
+**Expected Perfgate signal:** `microposts.show` — sql_count increases with page size.
 
 ---
 
@@ -63,7 +63,7 @@ the author. With 20 rows per page, this adds ~20 extra queries.
 
 **Effect:** Two COUNT queries per row — 40 extra queries per page of 20.
 
-**Expected Baseline signal:** `microposts.index` — sql_count increases, sql_duration increases, duration increases.
+**Expected Perfgate signal:** `microposts.index` — sql_count increases, sql_duration increases, duration increases.
 
 ---
 
@@ -86,7 +86,7 @@ Kaminari.paginate_array(all_matches).page(1).per(20)
 Kaminari discards all but the first page. With 5 000 posts matching `#rails`,
 this allocates ~5 000 AR objects instead of 20.
 
-**Expected Baseline signal:** `microposts.search` — duration increases, sql_duration increases, allocations may increase.
+**Expected Perfgate signal:** `microposts.search` — duration increases, sql_duration increases, allocations may increase.
 
 ---
 
@@ -112,7 +112,7 @@ end
 **Effect:** Every comment create adds a SELECT COUNT and an UPDATE (with a full
 row-level lock on the micropost) instead of a single atomic increment.
 
-**Expected Baseline signal:** `comments.create` — sql_count +2, sql_duration increases, duration increases.
+**Expected Perfgate signal:** `comments.create` — sql_count +2, sql_duration increases, duration increases.
 
 ---
 
@@ -138,7 +138,7 @@ comments_count: mp.comments.count,  # N+1: one COUNT per micropost
 
 **Effect:** For `limit: 50`, adds ~100 extra queries (50 user lookups + 50 COUNTs).
 
-**Expected Baseline signal:** `micropost_digest.perform` — sql_count increases by ~2×limit, duration increases.
+**Expected Perfgate signal:** `micropost_digest.perform` — sql_count increases by ~2×limit, duration increases.
 
 ---
 
@@ -159,7 +159,7 @@ normalized = JSON.parse(raw.to_json)
 **Effect:** SQL queries unchanged. Each entry allocates multiple intermediate
 objects that don't appear on main.
 
-**Expected Baseline signal:** `micropost_digest.perform` — allocations increase significantly, sql_count unchanged.
+**Expected Perfgate signal:** `micropost_digest.perform` — allocations increase significantly, sql_count unchanged.
 
 ---
 
@@ -180,4 +180,4 @@ objects that don't appear on main.
 **Effect:** Loads all comments for the micropost regardless of count. A micropost
 with many comments returns them all in one response.
 
-**Expected Baseline signal:** `microposts.show` — duration increases, allocations increase proportional to comment count.
+**Expected Perfgate signal:** `microposts.show` — duration increases, allocations increase proportional to comment count.

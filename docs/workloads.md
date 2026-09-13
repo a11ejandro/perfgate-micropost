@@ -1,10 +1,10 @@
 # Workloads
 
-Five stable Baseline workloads are defined in `spec/baseline/workloads_spec.rb`.
+Five stable Perfgate workloads are defined in `spec/perfgate/workloads_spec.rb`.
 
-All setup (record lookup, fixture creation) runs **outside** `Baseline.measure`.
+All setup (record lookup, fixture creation) runs **outside** `Perfgate.measure`.
 Assertions run **outside** the measured block. Only the single application action
-sits inside `Baseline.measure`.
+sits inside `Perfgate.measure`.
 
 ---
 

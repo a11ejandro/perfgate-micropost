@@ -36,12 +36,12 @@ The seed uses `insert_all!` for bulk performance and recalculates the
 
 ## Dataset fingerprinting
 
-Set the following environment variable so Baseline records the dataset version
+Set the following environment variable so Perfgate records the dataset version
 in each run bundle and refuses to compare runs against incompatible data:
 
 ```bash
-export BASELINE_DATASET_VERSION=micropost-v1
+export PERFGATE_DATASET_VERSION=micropost-v1
 ```
 
-The default fallback value is `unspecified`. Baseline will warn (not fail) if you
+The default fallback value is `unspecified`. Perfgate will warn (not fail) if you
 compare a run with `unspecified` against one with `micropost-v1`.
