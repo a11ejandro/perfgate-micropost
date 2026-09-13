@@ -26,8 +26,8 @@ infrastructure beyond PostgreSQL.
 | App location | `/Users/alex/Code/baseline-micropost/` | Standalone sibling repo, not nested inside baseline gem |
 | Baseline gem ref | `path: "../baseline/baseline"` | Local path dep during dev; not published |
 | Pagination | kaminari 1.2 | Standard Rails pagination gem; no DSL complexity |
-| Test framework | rspec-rails 6.1, factory_bot_rails 6 | Baseline requires RSpec; factory_bot for fixtures |
-| DB cleanup | `use_transactional_fixtures: true` | Wraps each example in a rolled-back transaction |
+| Test framework | rspec-rails 6.1, factory_bot_rails 6 | Perfgate requires RSpec; factory_bot for fixtures |
+| DB cleanup | transactional fixtures for normal specs; reset/reseed for Perfgate workloads | Forked workload processes must not inherit Rails test transactions |
 
 ---
 
@@ -109,20 +109,19 @@ baseline run: 5 workload(s) -> .baseline/main/runs/<uuid>
 
 ## Known issues / constraints
 
-**Workload fixture transaction behavior.** `use_transactional_fixtures: true` rolls back
-each example. `before(:all)` setup is therefore wiped before the second example runs.
-Fixed by switching to `before(:each)` + `find_or_create_by!` so each example receives
-fresh but stable data. Trade-off: fixture setup runs 5× per suite (once per workload
-example); currently ~50ms overhead each.
+**Workload fixture transaction behavior.** Perfgate runs workloads in forked child
+processes. The workload spec opts out of Rails transactional fixtures and calls
+`WorkloadFixtures.setup` before each sample, which deletes and reseeds the small
+workload dataset so each measurement starts from identical state.
 
 **CommentsController uses first user as author.** No auth in the MVP. The `create`
 action calls `User.order(:id).first`. This is intentional per spec §14 ("no
 authentication initially") and kept simple for reproducibility.
 
-**Workload specs run in test env against transactional data, not the seeded dev DB.**
-`baseline run` loads the RSpec suite (RAILS_ENV=test), so workloads operate on the
+**Workload specs run in test env against fixture data, not the seeded dev DB.**
+`perfgate run` loads the RSpec suite (RAILS_ENV=test), so workloads operate on the
 fixture data from `WorkloadFixtures.setup` (10 users / 50 posts / 200 comments),
-not the 100/5000/50000 seed. This keeps `baseline run` fast and self-contained
+not the 100/5000/50000 seed. This keeps `perfgate run` fast and self-contained
 but means timing profiles are against a smaller dataset than production-scale seeding.
 Increasing workload fixture sizes is a straightforward tuning knob.
 

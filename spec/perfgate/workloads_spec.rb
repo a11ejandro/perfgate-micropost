@@ -13,6 +13,7 @@ require "rails_helper"
 #     bundle exec perfgate run --output .perfgate/current
 
 RSpec.describe "Perfgate workloads", type: :request do
+  self.use_transactional_tests = false if respond_to?(:use_transactional_tests=)
 
   before(:each) { WorkloadFixtures.setup }
 
