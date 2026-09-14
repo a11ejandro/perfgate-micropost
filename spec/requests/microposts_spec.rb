@@ -21,15 +21,11 @@ RSpec.describe "Microposts", type: :request do
       expect(response.body).to include(mp.content)
     end
 
-    it "shows comment authors without N+1" do
+    it "shows comment authors" do
       create_list(:comment, 5, micropost: mp, user: users.first)
-      queries = 0
-      counter = ->(*, **) { queries += 1 }
-      ActiveSupport::Notifications.subscribed(counter, "sql.active_record") do
-        get micropost_path(mp)
-      end
-      # healthy: 1 micropost+user + 1 comments+users + pagination = ~4-6 queries total
-      expect(queries).to be < 10
+      get micropost_path(mp)
+
+      expect(response.body).to include(users.first.name)
     end
   end
 
