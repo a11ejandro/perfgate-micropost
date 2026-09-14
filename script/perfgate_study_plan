@@ -1,7 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require "digest"
 require "json"
+require "open3"
 require "optparse"
 require "time"
 require "yaml"
@@ -14,9 +16,11 @@ OptionParser.new do |parser|
   parser.on("--repetitions N", Integer) { |value| options[:repetitions] = value }
   parser.on("--calibration-fraction N", Float) { |value| options[:calibration_fraction] = value }
   parser.on("--conditions PATH") { |value| options[:conditions] = value }
+  parser.on("--environment-class NAME") { |value| options[:environment_class] = value }
 end.parse!
 
 abort "--study is required" unless options[:study]
+abort "--environment-class is required" unless options[:environment_class]
 abort "--repetitions must be at least 2" unless options[:repetitions] >= 2
 unless options[:calibration_fraction].positive? && options[:calibration_fraction] < 1
   abort "--calibration-fraction must be greater than 0 and less than 1"
@@ -24,6 +28,17 @@ end
 
 conditions_path = options[:conditions] || File.expand_path("../evaluation/conditions.yml", __dir__)
 conditions = YAML.safe_load(File.read(conditions_path)).fetch("conditions")
+configuration = YAML.safe_load(File.read("perfgate.yml"))
+lock = File.read("Gemfile.lock")
+perfgate_revision = lock[/remote: https:\/\/github\.com\/a11ejandro\/perfgate\.git\n\s+revision: ([0-9a-f]{40})/, 1]
+abort "Gemfile.lock does not contain an exact Perfgate revision" unless perfgate_revision
+
+resolve = lambda do |reference|
+  output, status = Open3.capture2e("git", "rev-parse", "#{reference}^{commit}")
+  abort "cannot resolve #{reference}: #{output}" unless status.success?
+  output.strip
+end
+
 rng = Random.new(options[:seed])
 trials = []
 
@@ -39,7 +54,9 @@ conditions.each do |condition, specification|
       "phase" => phase,
       "condition" => condition,
       "reference_ref" => "main",
+      "reference_revision" => resolve.call("main"),
       "candidate_ref" => specification.fetch("candidate_ref"),
+      "candidate_revision" => resolve.call(specification.fetch("candidate_ref")),
       "injection" => specification.fetch("injection"),
       "expected_signal" => specification.fetch("expected_signal"),
       "execution_sequence" => %w[reference candidate]
@@ -52,6 +69,14 @@ plan = {
   "study_id" => options[:study],
   "generated_at" => Time.now.utc.iso8601,
   "randomization_seed" => options[:seed],
+  "environment_class" => options[:environment_class],
+  "perfgate_revision" => perfgate_revision,
+  "configuration_digest" => "sha256:#{Digest::SHA256.file('perfgate.yml').hexdigest}",
+  "configuration_snapshot" => configuration,
+  "workload_source_digests" => %w[
+    spec/perfgate/workloads_spec.rb
+    spec/support/workload_fixtures.rb
+  ].to_h { |path| [path, "sha256:#{Digest::SHA256.file(path).hexdigest}"] },
   "reference_design" => "historical_stored_baseline",
   "estimator" => "independent_nonparametric_bootstrap_median_difference",
   "calibration_fraction" => options[:calibration_fraction],
