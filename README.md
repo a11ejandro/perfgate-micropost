@@ -117,20 +117,22 @@ DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
     --format markdown
 ```
 
-### Expected results
+### Intended regression signals
 
 | Branch | Workload | Expected regression |
 |---|---|---|
 | `regression/microposts-index-n-plus-one` | `microposts.index` | SQL count |
 | `regression/micropost-show-comment-authors-n-plus-one` | `microposts.show` | SQL count |
 | `regression/microposts-index-comment-count-query` | `microposts.index` | SQL count and duration |
-| `regression/micropost-search-unindexed-pattern` | `microposts.search` | Duration and SQL duration |
+| `regression/micropost-search-unindexed-pattern` | `microposts.search` | Allocations |
 | `regression/comment-create-recount` | `comments.create` | SQL count and write duration |
 | `regression/digest-job-n-plus-one` | `micropost_digest.perform` | SQL count |
 | `regression/digest-job-allocation-growth` | `micropost_digest.perform` | Allocations |
-| `regression/micropost-show-unbounded-comments` | `microposts.show` | Duration and allocations |
+| `regression/micropost-show-unbounded-comments` | `microposts.show` | Allocations |
 
 See [docs/regressions.md](docs/regressions.md) for code-level detail on each regression.
+These are experimental conditions, not established detection rates. Repeated
+calibration and held-out trials are required before reporting sensitivity.
 
 ---
 
