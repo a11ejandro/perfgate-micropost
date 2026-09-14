@@ -34,6 +34,8 @@ OptionParser.new do |parser|
   parser.on("--arm ARM") { |value| options[:arm] = value }
   parser.on("--injection NAME") { |value| options[:injection] = value }
   parser.on("--reference PATH") { |value| options[:reference] = value }
+  parser.on("--expected-revision SHA") { |value| options[:expected_revision] = value }
+  parser.on("--environment-class NAME") { |value| options[:environment_class] = value }
   parser.on("--config PATH") { |value| options[:config] = value }
   parser.on("--output-root PATH") { |value| options[:output_root] = value }
   parser.on("--allow-dirty") { options[:allow_dirty] = true }
@@ -44,6 +46,13 @@ missing = required.reject { |key| options[key] && !options[key].empty? }
 abort "missing required options: #{missing.join(', ')}" unless missing.empty?
 abort "phase must be pilot, calibration, or held_out" unless %w[pilot calibration held_out].include?(options[:phase])
 abort "arm must be reference or candidate" unless %w[reference candidate].include?(options[:arm])
+identifier = /\A[a-zA-Z0-9][a-zA-Z0-9._-]*\z/
+%i[study trial condition].each do |key|
+  abort "#{key} contains unsupported characters" unless options.fetch(key).match?(identifier)
+end
+if options[:injection] && !options[:injection].match?(identifier)
+  abort "injection contains unsupported characters"
+end
 if options[:arm] == "candidate" && !options[:reference]
   abort "candidate trials require --reference pointing to one immutable run directory"
 end
@@ -60,6 +69,17 @@ if !options[:allow_dirty] && !dirty.empty?
 end
 if options[:phase] != "pilot" && options[:allow_dirty]
   abort "--allow-dirty is restricted to pilot trials"
+end
+if options[:phase] != "pilot" && !options[:expected_revision]
+  abort "calibration and held-out trials require --expected-revision from the frozen plan"
+end
+if options[:phase] != "pilot" && !options[:environment_class]
+  abort "calibration and held-out trials require --environment-class from the frozen plan"
+end
+
+app_revision = capture("git", "rev-parse", "HEAD")
+if options[:expected_revision] && app_revision != options[:expected_revision]
+  abort "current revision #{app_revision} does not match frozen revision #{options[:expected_revision]}"
 end
 
 trial_root = File.expand_path(
@@ -82,9 +102,10 @@ manifest = {
   "injection" => options[:injection] || "none",
   "reference_run_directory" => options[:reference] && File.expand_path(options[:reference]),
   "started_at" => Time.now.utc.iso8601,
-  "app_revision" => capture("git", "rev-parse", "HEAD"),
+  "app_revision" => app_revision,
   "app_branch" => capture("git", "branch", "--show-current"),
   "source_dirty" => !dirty.empty?,
+  "environment_class" => options[:environment_class],
   "perfgate_revision" => perfgate_revision,
   "config_path" => File.expand_path(options[:config]),
   "config_digest" => "sha256:#{Digest::SHA256.file(options[:config]).hexdigest}",

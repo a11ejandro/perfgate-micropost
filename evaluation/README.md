@@ -28,9 +28,13 @@ runs as paired, interleaved, or randomized AB/BA measurements.
 script/perfgate_study_plan \
   --study perfgate-micropost-v1 \
   --seed 20260914 \
-  --repetitions 10 > evaluation/perfgate-micropost-v1.plan.json
+  --repetitions 10 \
+  --environment-class github-actions-ubuntu-latest-postgresql-17-ruby-3.3.4 \
+  > evaluation/perfgate-micropost-v1.plan.json
 ```
 
+The repetition count above is illustrative, not a justified sample size. Choose
+and preregister it after pilot variance and effect-size results are available.
 Do not inspect held-out outcomes while tuning the configuration or injections.
 
 ## Capture a trial arm
@@ -43,7 +47,9 @@ bundle exec ruby script/perfgate_trial \
   --trial aa-01 \
   --phase calibration \
   --condition aa \
-  --arm reference
+  --arm reference \
+  --expected-revision REFERENCE_SHA_FROM_PLAN \
+  --environment-class github-actions-ubuntu-latest-postgresql-17-ruby-3.3.4
 ```
 
 Then run the candidate arm from the ref named by the plan, passing the exact
@@ -56,10 +62,13 @@ bundle exec ruby script/perfgate_trial \
   --phase calibration \
   --condition aa \
   --arm candidate \
+  --expected-revision CANDIDATE_SHA_FROM_PLAN \
+  --environment-class github-actions-ubuntu-latest-postgresql-17-ruby-3.3.4 \
   --reference .perfgate/evaluation/perfgate-micropost-v1/calibration/aa-01/reference/runs/RUN_ID
 ```
 
-Non-pilot captures refuse dirty worktrees. `trial.json` records the revisions,
+Non-pilot captures refuse dirty worktrees and abort unless the checked-out SHA
+and environment class match values supplied from the frozen plan. `trial.json` records the revisions,
 configuration and workload digests, environment, elapsed time, artifact paths,
 and evidence result. `script/validate_perfgate_bundle` verifies content digests,
 run schema v2, comparison schema v2, and workload execution status.
