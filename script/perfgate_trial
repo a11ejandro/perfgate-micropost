@@ -1,6 +1,15 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+required_ruby = File.read(File.expand_path("../.ruby-version", __dir__)).strip
+unless RUBY_VERSION.start_with?(required_ruby)
+  rbenv = ENV.fetch("PATH", "").split(File::PATH_SEPARATOR)
+             .map { |directory| File.join(directory, "rbenv") }
+             .find { |path| File.executable?(path) }
+  abort "Ruby #{required_ruby} is required" unless rbenv
+  exec(rbenv, "exec", "ruby", File.expand_path(__FILE__), *ARGV)
+end
+
 require "digest"
 require "English"
 require "fileutils"
@@ -99,8 +108,9 @@ manifest = {
 manifest_path = File.join(trial_root, "trial.json")
 File.write(manifest_path, JSON.pretty_generate(manifest))
 
+bundle = File.join(RbConfig::CONFIG.fetch("bindir"), "bundle")
 command = [
-  "bundle", "exec", "perfgate", "run",
+  bundle, "exec", "perfgate", "run",
   "--config", options[:config],
   "--output", trial_root,
   "--format", "markdown"
