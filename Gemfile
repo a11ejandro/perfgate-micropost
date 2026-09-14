@@ -43,7 +43,12 @@ group :development, :test do
   gem "rspec-rails", "~> 6.0"
   gem "factory_bot_rails", "~> 6.0"
   gem "database_cleaner-active_record", "~> 2.1"
-  gem "perfgate", git: "https://github.com/a11ejandro/perfgate.git", branch: "main"
+  gem "json_schemer", "~> 2.4"
+  # Evaluation runs must resolve the audited implementation, not a moving branch.
+  gem "perfgate",
+      git: "https://github.com/a11ejandro/perfgate.git",
+      branch: "main",
+      ref: "405dfb42265d96890302d7a719f384c050983ec5"
 end
 
 group :development do

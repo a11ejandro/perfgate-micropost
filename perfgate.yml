@@ -3,14 +3,19 @@ version: 1
 execution:
   samples: 8
   warmup: 2
+  seed: 12345
+  order: random
 
 dataset:
-  id: micropost-fixtures
-  schema_version: "1"
-  generator_version: "1"
+  id: perfgate-micropost-workload-fixtures
+  schema_version: "2"
+  generator_version: "2"
   seed: 12345
-  scale: "users=10,microposts=100,comments=300"
-  cache_state: cold
+  scale: "users=10,microposts=500,comments=2500,featured_comments=200"
+  cardinality: "users=10,microposts=500,comments=2500"
+  skew: "first_micropost_comments=200;remaining_comments=2300_uniform_random"
+  relationships: "each_micropost_and_comment_has_one_user;each_comment_has_one_micropost"
+  cache_state: "database_reseeded_no_explicit_cache_flush"
 
 metrics:
   duration:     { enabled: true }

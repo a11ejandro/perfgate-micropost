@@ -39,7 +39,7 @@ RSpec.describe "Perfgate workloads", type: :request do
              owner: "micropost-platform"
            } do
     it "renders a micropost with comments" do
-      mp = Micropost.includes(:comments).order(:id).first!
+      mp = WorkloadFixtures.featured_micropost
       Perfgate.measure { get "/microposts/#{mp.id}" }
       expect(response).to have_http_status(:ok)
     end
@@ -68,7 +68,7 @@ RSpec.describe "Perfgate workloads", type: :request do
              owner: "micropost-platform"
            } do
     it "creates a comment via POST" do
-      mp = Micropost.order(:id).first!
+      mp = WorkloadFixtures.featured_micropost
       Perfgate.measure do
         post "/microposts/#{mp.id}/comments",
              params: { comment: { content: "benchmark comment" } }

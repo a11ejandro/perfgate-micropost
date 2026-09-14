@@ -14,8 +14,9 @@ regressions in Rails applications.
 ## Project purpose
 
 Baseline Micropost demonstrates five canonical Rails workflows (a paginated index,
-a detail page, a search, a write path, and a background job) against a deterministic
-dataset of 100 users, 5 000 microposts, and 50 000 comments.
+a detail page, a search, a write path, and a background job). Performance
+observations recreate a dedicated deterministic dataset of 10 users, 500
+microposts, and 2 500 comments before each observation.
 
 The `main` branch is intentionally correct: no N+1 queries, counter cache in use,
 associations eager-loaded. Eight `regression/*` branches each introduce a single
@@ -50,15 +51,14 @@ bundle install
 # Create databases and run migrations
 bundle exec rails db:create db:migrate
 
-# Seed the deterministic dataset (100 users / 5000 microposts / 50000 comments)
+# Seed the application demonstration dataset (not used by Perfgate workloads)
 bundle exec rails db:seed
 
 # Run the test suite
 bundle exec rspec
 
 # Run Perfgate workloads
-PERFGATE_DATASET_VERSION=micropost-v1 \
-  DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
+DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
   bundle exec perfgate run --output .perfgate/main
 ```
 
@@ -89,11 +89,10 @@ See [docs/workloads.md](docs/workloads.md) for full details.
 
 ## Dataset
 
-The seed is deterministic: `PRNG = Random.new(42)` with a fixed epoch of
-`2024-01-01 00:00:00 UTC`. Repeated seeding produces logically equivalent data.
-
-Set `PERFGATE_DATASET_VERSION=micropost-v1` so Perfgate can fingerprint the
-dataset and refuse to compare runs built against different data.
+The performance fixture is deterministic: seed `12345`, a fixed epoch, declared
+cardinalities and skew, and a database reset before every observation. The
+fixture intentionally does not claim a cold cache. Its complete contract is in
+`perfgate.yml` and is recorded and fingerprinted by Perfgate.
 
 See [docs/dataset.md](docs/dataset.md).
 
@@ -106,14 +105,12 @@ functionally correct; only the performance characteristics change.
 
 ```bash
 # Record a main-branch baseline
-PERFGATE_DATASET_VERSION=micropost-v1 \
-  DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
+DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
   bundle exec perfgate run --output .perfgate/main
 
 # Switch to a regression branch and compare
 git checkout regression/microposts-index-n-plus-one
-PERFGATE_DATASET_VERSION=micropost-v1 \
-  DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
+DB_HOST=127.0.0.1 PGGSSENCMODE=disable \
   bundle exec perfgate run \
     --output .perfgate/candidate \
     --compare .perfgate/main \
