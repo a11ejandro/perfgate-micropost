@@ -1,0 +1,131 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "digest"
+require "English"
+require "fileutils"
+require "json"
+require "open3"
+require "optparse"
+require "rbconfig"
+require "time"
+
+options = {
+  config: "perfgate.yml",
+  output_root: ".perfgate/evaluation",
+  allow_dirty: false
+}
+
+OptionParser.new do |parser|
+  parser.banner = "usage: script/perfgate_trial [options]"
+  parser.on("--study ID") { |value| options[:study] = value }
+  parser.on("--trial ID") { |value| options[:trial] = value }
+  parser.on("--phase PHASE") { |value| options[:phase] = value }
+  parser.on("--condition CONDITION") { |value| options[:condition] = value }
+  parser.on("--arm ARM") { |value| options[:arm] = value }
+  parser.on("--injection NAME") { |value| options[:injection] = value }
+  parser.on("--reference PATH") { |value| options[:reference] = value }
+  parser.on("--config PATH") { |value| options[:config] = value }
+  parser.on("--output-root PATH") { |value| options[:output_root] = value }
+  parser.on("--allow-dirty") { options[:allow_dirty] = true }
+end.parse!
+
+required = %i[study trial phase condition arm]
+missing = required.reject { |key| options[key] && !options[key].empty? }
+abort "missing required options: #{missing.join(', ')}" unless missing.empty?
+abort "phase must be pilot, calibration, or held_out" unless %w[pilot calibration held_out].include?(options[:phase])
+abort "arm must be reference or candidate" unless %w[reference candidate].include?(options[:arm])
+if options[:arm] == "candidate" && !options[:reference]
+  abort "candidate trials require --reference pointing to one immutable run directory"
+end
+
+def capture(*command)
+  output, status = Open3.capture2e(*command)
+  abort "#{command.join(' ')} failed: #{output}" unless status.success?
+  output.strip
+end
+
+dirty = capture("git", "status", "--porcelain", "--untracked-files=all")
+if !options[:allow_dirty] && !dirty.empty?
+  abort "refusing an evaluation capture from a dirty worktree; commit changes or use --allow-dirty for a non-publishable pilot"
+end
+if options[:phase] != "pilot" && options[:allow_dirty]
+  abort "--allow-dirty is restricted to pilot trials"
+end
+
+trial_root = File.expand_path(
+  File.join(options[:output_root], options[:study], options[:phase], options[:trial], options[:arm])
+)
+abort "trial output already exists: #{trial_root}" if File.exist?(trial_root)
+FileUtils.mkdir_p(trial_root)
+
+lock = File.read("Gemfile.lock")
+perfgate_revision = lock[/remote: https:\/\/github\.com\/a11ejandro\/perfgate\.git\n\s+revision: ([0-9a-f]{40})/, 1]
+abort "Gemfile.lock does not contain an exact Perfgate revision" unless perfgate_revision
+
+manifest = {
+  "schema_version" => 1,
+  "study_id" => options[:study],
+  "trial_id" => options[:trial],
+  "phase" => options[:phase],
+  "condition" => options[:condition],
+  "arm" => options[:arm],
+  "injection" => options[:injection] || "none",
+  "reference_run_directory" => options[:reference] && File.expand_path(options[:reference]),
+  "started_at" => Time.now.utc.iso8601,
+  "app_revision" => capture("git", "rev-parse", "HEAD"),
+  "app_branch" => capture("git", "branch", "--show-current"),
+  "source_dirty" => !dirty.empty?,
+  "perfgate_revision" => perfgate_revision,
+  "config_path" => File.expand_path(options[:config]),
+  "config_digest" => "sha256:#{Digest::SHA256.file(options[:config]).hexdigest}",
+  "workload_source_digests" => %w[
+    spec/perfgate/workloads_spec.rb
+    spec/support/workload_fixtures.rb
+  ].to_h { |path| [path, "sha256:#{Digest::SHA256.file(path).hexdigest}"] },
+  "environment" => {
+    "ruby" => RUBY_DESCRIPTION,
+    "host" => RUBY_PLATFORM,
+    "ci" => ENV.fetch("CI", "false"),
+    "runner_name" => ENV["RUNNER_NAME"],
+    "runner_image" => ENV["PERFGATE_RUNNER_IMAGE"] || ENV["ImageOS"],
+    "database_host" => ENV.fetch("DB_HOST", "localhost"),
+    "database_port" => ENV.fetch("DB_PORT", "5432")
+  },
+  "declared_outcomes" => %w[pass warn fail inconclusive incomparable],
+  "status" => "running"
+}
+
+manifest_path = File.join(trial_root, "trial.json")
+File.write(manifest_path, JSON.pretty_generate(manifest))
+
+command = [
+  "bundle", "exec", "perfgate", "run",
+  "--config", options[:config],
+  "--output", trial_root,
+  "--format", "markdown"
+]
+command.concat(["--compare", File.expand_path(options[:reference])]) if options[:reference]
+
+started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+system(*command)
+exit_status = $CHILD_STATUS.exitstatus
+elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+
+run_paths = Dir.glob(File.join(trial_root, "runs", "*", "run.json"))
+comparison_paths = Dir.glob(File.join(trial_root, "comparisons", "*.json"))
+manifest["completed_at"] = Time.now.utc.iso8601
+manifest["elapsed_seconds"] = elapsed.round(6)
+manifest["perfgate_exit_code"] = exit_status
+manifest["run_result"] = run_paths.one? ? File.dirname(run_paths.first) : nil
+manifest["comparison_result"] = comparison_paths.one? ? comparison_paths.first : nil
+manifest["evidence_result"] = if comparison_paths.one?
+                                JSON.parse(File.read(comparison_paths.first))["decision"]
+                              end
+manifest["status"] = exit_status.zero? ? "completed" : "perfgate_nonzero_exit"
+File.write(manifest_path, JSON.pretty_generate(manifest))
+
+validator = File.expand_path("validate_perfgate_bundle", __dir__)
+validation_ok = system(RbConfig.ruby, validator, trial_root)
+abort "trial artifact validation failed" unless validation_ok
+exit exit_status

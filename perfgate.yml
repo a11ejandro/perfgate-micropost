@@ -1,0 +1,52 @@
+version: 1
+
+execution:
+  samples: 8
+  warmup: 2
+  seed: 12345
+  order: random
+
+dataset:
+  id: perfgate-micropost-workload-fixtures
+  schema_version: "2"
+  generator_version: "2"
+  seed: 12345
+  scale: "users=10,microposts=500,comments=2500,featured_comments=200"
+  cardinality: "users=10,microposts=500,comments=2500"
+  skew: "first_micropost_comments=200;remaining_comments=2300_uniform_random"
+  relationships: "each_micropost_and_comment_has_one_user;each_comment_has_one_micropost"
+  cache_state: "database_reseeded_no_explicit_cache_flush"
+
+metrics:
+  duration:     { enabled: true }
+  sql_count:    { enabled: true }
+  sql_duration: { enabled: true }
+  allocations:  { enabled: true }
+  gc:           { enabled: true }
+  memory:       { enabled: false }
+
+comparison:
+  max_baseline_age_seconds: 604800
+  noise_ratio_threshold: 0.5
+  practical_thresholds:
+    duration:
+      warning_percent:    5
+      failure_percent:    10
+      minimum_absolute_ms: 10
+    sql_count:
+      warning_absolute:  0
+      failure_percent:   0
+    allocations:
+      warning_percent:   10
+      failure_percent:   20
+
+policy:
+  # Keep advisory until repeated A/A and injected-regression runs establish
+  # acceptable false-decision rates and power on this CI runner.
+  mode:             advisory
+  fail_on:          fail
+  missing_baseline: warn
+  incompatible:     warn
+
+storage:
+  path: .perfgate

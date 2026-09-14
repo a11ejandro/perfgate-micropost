@@ -6,5 +6,9 @@
 /vendor/
 .env
 .baseline/
+.perfgate/
+config/master.key
+config/credentials/*.key
+*.gem
 *.sqlite3
 node_modules/
