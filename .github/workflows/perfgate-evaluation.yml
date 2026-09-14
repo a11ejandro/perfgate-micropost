@@ -133,6 +133,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: perfgate-evaluation-${{ inputs.study }}-${{ inputs.trial }}-${{ inputs.arm }}
-          path: .perfgate/evaluation/${{ inputs.study }}/${{ inputs.phase }}/${{ inputs.trial }}/${{ inputs.arm }}
+          path: .perfgate/evaluation
           include-hidden-files: true
           retention-days: 90
