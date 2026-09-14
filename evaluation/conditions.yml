@@ -18,7 +18,7 @@ conditions:
   micropost-search-unindexed-pattern:
     candidate_ref: regression/micropost-search-unindexed-pattern
     injection: materialize_all_search_matches_before_pagination
-    expected_signal: duration_or_allocations
+    expected_signal: allocations
   comment-create-recount:
     candidate_ref: regression/comment-create-recount
     injection: recount_comments_after_create
@@ -34,4 +34,4 @@ conditions:
   micropost-show-unbounded-comments:
     candidate_ref: regression/micropost-show-unbounded-comments
     injection: remove_comment_pagination
-    expected_signal: duration_or_allocations
+    expected_signal: allocations
