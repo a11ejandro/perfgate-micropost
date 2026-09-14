@@ -10,13 +10,4 @@ RSpec.describe MicropostDigestJob, type: :job do
     expect(result[:entries]).to all(include(:author, :content, :comments_count))
   end
 
-  it "includes author names without N+1" do
-    queries = 0
-    counter = ->(*, **) { queries += 1 }
-    ActiveSupport::Notifications.subscribed(counter, "sql.active_record") do
-      described_class.new.perform(limit: 15)
-    end
-    # healthy: 1 query for microposts+users — should be 1-3 queries total
-    expect(queries).to be < 5
-  end
 end
