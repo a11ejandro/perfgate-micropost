@@ -38,7 +38,7 @@ Do not inspect held-out outcomes while tuning the configuration or injections.
 Run the reference arm from the frozen main revision:
 
 ```bash
-script/perfgate_trial \
+bundle exec ruby script/perfgate_trial \
   --study perfgate-micropost-v1 \
   --trial aa-01 \
   --phase calibration \
@@ -50,7 +50,7 @@ Then run the candidate arm from the ref named by the plan, passing the exact
 reference run directory printed by the first command:
 
 ```bash
-script/perfgate_trial \
+bundle exec ruby script/perfgate_trial \
   --study perfgate-micropost-v1 \
   --trial aa-01 \
   --phase calibration \
