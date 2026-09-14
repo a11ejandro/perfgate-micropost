@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "json"
+require "optparse"
+require "time"
+require "yaml"
+
+options = { seed: 20_260_914, repetitions: 10, calibration_fraction: 0.6 }
+OptionParser.new do |parser|
+  parser.banner = "usage: script/perfgate_study_plan --study ID [options]"
+  parser.on("--study ID") { |value| options[:study] = value }
+  parser.on("--seed N", Integer) { |value| options[:seed] = value }
+  parser.on("--repetitions N", Integer) { |value| options[:repetitions] = value }
+  parser.on("--calibration-fraction N", Float) { |value| options[:calibration_fraction] = value }
+  parser.on("--conditions PATH") { |value| options[:conditions] = value }
+end.parse!
+
+abort "--study is required" unless options[:study]
+abort "--repetitions must be at least 2" unless options[:repetitions] >= 2
+unless options[:calibration_fraction].positive? && options[:calibration_fraction] < 1
+  abort "--calibration-fraction must be greater than 0 and less than 1"
+end
+
+conditions_path = options[:conditions] || File.expand_path("../evaluation/conditions.yml", __dir__)
+conditions = YAML.safe_load(File.read(conditions_path)).fetch("conditions")
+rng = Random.new(options[:seed])
+trials = []
+
+conditions.each do |condition, specification|
+  indexes = (1..options[:repetitions]).to_a.shuffle(random: rng)
+  calibration_count = (options[:repetitions] * options[:calibration_fraction]).floor
+  calibration_indexes = indexes.first(calibration_count)
+
+  indexes.each do |index|
+    phase = calibration_indexes.include?(index) ? "calibration" : "held_out"
+    trials << {
+      "trial_id" => format("%s-%02d", condition.tr("/", "-"), index),
+      "phase" => phase,
+      "condition" => condition,
+      "reference_ref" => "main",
+      "candidate_ref" => specification.fetch("candidate_ref"),
+      "injection" => specification.fetch("injection"),
+      "expected_signal" => specification.fetch("expected_signal"),
+      "execution_sequence" => %w[reference candidate]
+    }
+  end
+end
+
+plan = {
+  "schema_version" => 1,
+  "study_id" => options[:study],
+  "generated_at" => Time.now.utc.iso8601,
+  "randomization_seed" => options[:seed],
+  "reference_design" => "historical_stored_baseline",
+  "estimator" => "independent_nonparametric_bootstrap_median_difference",
+  "calibration_fraction" => options[:calibration_fraction],
+  "outcomes" => %w[pass warn fail inconclusive incomparable],
+  "trials" => trials.shuffle(random: rng)
+}
+
+puts JSON.pretty_generate(plan)
