@@ -1,0 +1,138 @@
+name: Perfgate evaluation trial
+
+on:
+  workflow_dispatch:
+    inputs:
+      study:
+        description: Committed study-plan identifier
+        required: true
+      trial:
+        description: Trial identifier from the committed plan
+        required: true
+      phase:
+        description: Study phase
+        required: true
+        type: choice
+        options: [pilot, calibration, held_out]
+      condition:
+        description: Condition identifier from evaluation/conditions.yml
+        required: true
+      arm:
+        description: Capture reference first, then candidate
+        required: true
+        type: choice
+        options: [reference, candidate]
+      injection:
+        description: Injection identifier, or none for A/A
+        required: true
+        default: none
+      expected_revision:
+        description: Exact reference or candidate SHA from the frozen plan
+        required: true
+      environment_class:
+        description: Environment-class identifier from the frozen plan
+        required: true
+      reference_run_id:
+        description: Workflow run ID containing the reference-arm artifact
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  RAILS_ENV: test
+  DB_HOST: 127.0.0.1
+  DB_PORT: "5432"
+  DB_USERNAME: baseline
+  DB_PASSWORD: baseline
+  PGGSSENCMODE: disable
+  PERFGATE_RUNNER_IMAGE: ubuntu-latest-postgres-17
+
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: baseline
+          POSTGRES_PASSWORD: baseline
+          POSTGRES_DB: baseline_micropost_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U baseline -d baseline_micropost_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3.4"
+          bundler-cache: true
+
+      - name: Prepare database
+        run: bundle exec rails db:prepare
+
+      - name: Download exact reference-arm artifact
+        if: inputs.arm == 'candidate'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_REFERENCE_RUN_ID: ${{ inputs.reference_run_id }}
+          INPUT_STUDY: ${{ inputs.study }}
+          INPUT_TRIAL: ${{ inputs.trial }}
+        run: |
+          if [ -z "$INPUT_REFERENCE_RUN_ID" ]; then
+            echo "candidate arm requires reference_run_id" >&2
+            exit 64
+          fi
+          mkdir -p .perfgate/evaluation-reference
+          gh run download "$INPUT_REFERENCE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "perfgate-evaluation-$INPUT_STUDY-$INPUT_TRIAL-reference" \
+            --dir .perfgate/evaluation-reference
+          reference_run="$(find .perfgate/evaluation-reference -path '*/runs/*/run.json' -print -quit)"
+          if [ -z "$reference_run" ]; then
+            echo "reference artifact contains no run.json" >&2
+            exit 65
+          fi
+          echo "PERFGATE_EVALUATION_REFERENCE=$(dirname "$reference_run")" >> "$GITHUB_ENV"
+
+      - name: Capture trial arm
+        env:
+          INPUT_STUDY: ${{ inputs.study }}
+          INPUT_TRIAL: ${{ inputs.trial }}
+          INPUT_PHASE: ${{ inputs.phase }}
+          INPUT_CONDITION: ${{ inputs.condition }}
+          INPUT_ARM: ${{ inputs.arm }}
+          INPUT_INJECTION: ${{ inputs.injection }}
+          INPUT_EXPECTED_REVISION: ${{ inputs.expected_revision }}
+          INPUT_ENVIRONMENT_CLASS: ${{ inputs.environment_class }}
+        run: |
+          arguments=(
+            --study "$INPUT_STUDY"
+            --trial "$INPUT_TRIAL"
+            --phase "$INPUT_PHASE"
+            --condition "$INPUT_CONDITION"
+            --arm "$INPUT_ARM"
+            --injection "$INPUT_INJECTION"
+            --expected-revision "$INPUT_EXPECTED_REVISION"
+            --environment-class "$INPUT_ENVIRONMENT_CLASS"
+          )
+          if [ "$INPUT_ARM" = candidate ]; then
+            arguments+=(--reference "$PERFGATE_EVALUATION_REFERENCE")
+          fi
+          bundle exec ruby script/perfgate_trial "${arguments[@]}"
+
+      - name: Upload trial artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perfgate-evaluation-${{ inputs.study }}-${{ inputs.trial }}-${{ inputs.arm }}
+          path: .perfgate/evaluation/${{ inputs.study }}/${{ inputs.phase }}/${{ inputs.trial }}/${{ inputs.arm }}
+          include-hidden-files: true
+          retention-days: 90

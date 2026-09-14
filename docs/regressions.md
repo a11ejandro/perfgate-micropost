@@ -86,7 +86,7 @@ Kaminari.paginate_array(all_matches).page(1).per(20)
 Kaminari discards all but the first page. With 5 000 posts matching `#rails`,
 this allocates ~5 000 AR objects instead of 20.
 
-**Expected Perfgate signal:** `microposts.search` — duration increases, sql_duration increases, allocations may increase.
+**Primary evaluation signal:** `microposts.search` — allocations increase because all matching records are instantiated.
 
 ---
 
@@ -180,4 +180,4 @@ objects that don't appear on main.
 **Effect:** Loads all comments for the micropost regardless of count. A micropost
 with many comments returns them all in one response.
 
-**Expected Perfgate signal:** `microposts.show` — duration increases, allocations increase proportional to comment count.
+**Primary evaluation signal:** `microposts.show` — allocations increase proportional to comment count; duration remains a secondary noisy signal.
