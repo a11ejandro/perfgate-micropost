@@ -4,6 +4,14 @@ execution:
   samples: 8
   warmup: 2
 
+dataset:
+  id: micropost-fixtures
+  schema_version: "1"
+  generator_version: "1"
+  seed: 12345
+  scale: "users=10,microposts=100,comments=300"
+  cache_state: cold
+
 metrics:
   duration:     { enabled: true }
   sql_count:    { enabled: true }
@@ -13,6 +21,7 @@ metrics:
   memory:       { enabled: false }
 
 comparison:
+  max_baseline_age_seconds: 604800
   noise_ratio_threshold: 0.5
   practical_thresholds:
     duration:
@@ -27,6 +36,9 @@ comparison:
       failure_percent:   20
 
 policy:
+  # Keep advisory until repeated A/A and injected-regression runs establish
+  # acceptable false-decision rates and power on this CI runner.
+  mode:             advisory
   fail_on:          fail
   missing_baseline: warn
   incompatible:     warn

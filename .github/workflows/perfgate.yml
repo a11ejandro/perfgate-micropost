@@ -16,7 +16,6 @@ env:
   DB_USERNAME: baseline
   DB_PASSWORD: baseline
   PGGSSENCMODE: disable
-  PERFGATE_DATASET_VERSION: micropost-v1
   PERFGATE_REFERENCE: .perfgate/reference/missing
 
 jobs:

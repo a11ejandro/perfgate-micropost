@@ -9,8 +9,7 @@ require "rails_helper"
 # Setup runs OUTSIDE Perfgate.measure; assertions run OUTSIDE the measured block.
 #
 # Run with:
-#   RAILS_ENV=test PERFGATE_DATASET_VERSION=micropost-v1 \
-#     bundle exec perfgate run --output .perfgate/current
+#   RAILS_ENV=test bundle exec perfgate run --output .perfgate/current
 
 RSpec.describe "Perfgate workloads", type: :request do
   self.use_transactional_tests = false if respond_to?(:use_transactional_tests=)
@@ -20,7 +19,11 @@ RSpec.describe "Perfgate workloads", type: :request do
   # ── microposts.index ──────────────────────────────────────────────────────
 
   describe "Micropost index",
-           perfgate: { id: "microposts.index" } do
+           perfgate: {
+             id: "microposts.index",
+             claim: "Index rendering cost does not materially deteriorate",
+             owner: "micropost-platform"
+           } do
     it "renders the first page" do
       Perfgate.measure { get "/microposts" }
       expect(response).to have_http_status(:ok)
@@ -30,7 +33,11 @@ RSpec.describe "Perfgate workloads", type: :request do
   # ── microposts.show ───────────────────────────────────────────────────────
 
   describe "Micropost show",
-           perfgate: { id: "microposts.show" } do
+           perfgate: {
+             id: "microposts.show",
+             claim: "Show-page rendering cost does not materially deteriorate",
+             owner: "micropost-platform"
+           } do
     it "renders a micropost with comments" do
       mp = Micropost.includes(:comments).order(:id).first!
       Perfgate.measure { get "/microposts/#{mp.id}" }
@@ -41,7 +48,11 @@ RSpec.describe "Perfgate workloads", type: :request do
   # ── microposts.search ─────────────────────────────────────────────────────
 
   describe "Micropost search",
-           perfgate: { id: "microposts.search" } do
+           perfgate: {
+             id: "microposts.search",
+             claim: "Search response cost does not materially deteriorate",
+             owner: "micropost-platform"
+           } do
     it "filters by keyword" do
       Perfgate.measure { get "/microposts/search", params: { q: "rails" } }
       expect(response).to have_http_status(:ok)
@@ -51,7 +62,11 @@ RSpec.describe "Perfgate workloads", type: :request do
   # ── comments.create ───────────────────────────────────────────────────────
 
   describe "Comment create",
-           perfgate: { id: "comments.create" } do
+           perfgate: {
+             id: "comments.create",
+             claim: "Comment creation cost does not materially deteriorate",
+             owner: "micropost-platform"
+           } do
     it "creates a comment via POST" do
       mp = Micropost.order(:id).first!
       Perfgate.measure do
@@ -65,7 +80,11 @@ RSpec.describe "Perfgate workloads", type: :request do
   # ── micropost_digest.perform ──────────────────────────────────────────────
 
   describe "MicropostDigestJob",
-           perfgate: { id: "micropost_digest.perform" } do
+           perfgate: {
+             id: "micropost_digest.perform",
+             claim: "Digest generation cost does not materially deteriorate",
+             owner: "micropost-platform"
+           } do
     it "produces a digest of recent microposts" do
       result = nil
       Perfgate.measure { result = MicropostDigestJob.new.perform(limit: 50) }
