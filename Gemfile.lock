@@ -1,7 +1,10 @@
-PATH
-  remote: ../baseline/baseline
+GIT
+  remote: https://github.com/a11ejandro/perfgate.git
+  revision: 405dfb42265d96890302d7a719f384c050983ec5
+  ref: 405dfb42265d96890302d7a719f384c050983ec5
+  branch: main
   specs:
-    baseline (0.1.0)
+    perfgate (0.1.0)
       rspec-core (~> 3.12)
 
 GEM
@@ -116,6 +119,7 @@ GEM
       railties (>= 6.1.0)
     globalid (1.4.0)
       activesupport (>= 6.1)
+    hana (1.3.7)
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     importmap-rails (2.2.3)
@@ -128,6 +132,11 @@ GEM
       prism (>= 1.3.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
+    json_schemer (2.5.0)
+      bigdecimal
+      hana (~> 1.3)
+      regexp_parser (~> 2.0)
+      simpleidn (~> 0.2)
     kaminari (1.2.2)
       activesupport (>= 4.1.0)
       kaminari-actionview (= 1.2.2)
@@ -246,6 +255,7 @@ GEM
       prism (>= 1.6.0)
       rbs (>= 4.0.0)
       tsort
+    regexp_parser (2.12.0)
     reline (0.7.0)
       io-console (~> 0.5)
     rspec-core (3.13.6)
@@ -266,6 +276,7 @@ GEM
       rspec-support (~> 3.13)
     rspec-support (3.13.7)
     securerandom (0.4.1)
+    simpleidn (0.3.0)
     sprockets (4.2.2)
       concurrent-ruby (~> 1.0)
       logger
@@ -308,13 +319,14 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  baseline!
   bootsnap
   database_cleaner-active_record (~> 2.1)
   debug
   factory_bot_rails (~> 6.0)
   importmap-rails
+  json_schemer (~> 2.4)
   kaminari (~> 1.2)
+  perfgate!
   pg (~> 1.1)
   puma (>= 5.0)
   rails (~> 7.1.3, >= 7.1.3.4)

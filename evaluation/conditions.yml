@@ -1,0 +1,37 @@
+conditions:
+  aa:
+    candidate_ref: main
+    injection: none
+    expected_signal: no_intentional_change
+  microposts-index-n-plus-one:
+    candidate_ref: regression/microposts-index-n-plus-one
+    injection: remove_index_author_eager_loading
+    expected_signal: sql_count
+  micropost-show-comment-authors-n-plus-one:
+    candidate_ref: regression/micropost-show-comment-authors-n-plus-one
+    injection: remove_comment_author_eager_loading
+    expected_signal: sql_count
+  microposts-index-comment-count-query:
+    candidate_ref: regression/microposts-index-comment-count-query
+    injection: replace_counter_cache_with_live_counts
+    expected_signal: sql_count
+  micropost-search-unindexed-pattern:
+    candidate_ref: regression/micropost-search-unindexed-pattern
+    injection: materialize_all_search_matches_before_pagination
+    expected_signal: duration_or_allocations
+  comment-create-recount:
+    candidate_ref: regression/comment-create-recount
+    injection: recount_comments_after_create
+    expected_signal: sql_count
+  digest-job-n-plus-one:
+    candidate_ref: regression/digest-job-n-plus-one
+    injection: remove_digest_eager_loading_and_counter_cache
+    expected_signal: sql_count
+  digest-job-allocation-growth:
+    candidate_ref: regression/digest-job-allocation-growth
+    injection: json_roundtrip_and_string_duplication
+    expected_signal: allocations
+  micropost-show-unbounded-comments:
+    candidate_ref: regression/micropost-show-unbounded-comments
+    injection: remove_comment_pagination
+    expected_signal: duration_or_allocations

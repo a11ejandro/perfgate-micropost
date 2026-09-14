@@ -1,7 +1,7 @@
 # Deterministic seed for baseline-micropost reference application.
 #
 # Uses a fixed PRNG so every run produces logically equivalent data.
-# Dataset version is exposed as BASELINE_DATASET_VERSION for Baseline fingerprinting.
+# Dataset version is exposed as PERFGATE_DATASET_VERSION for Perfgate fingerprinting.
 #
 # Target (configurable via ENV):
 #   SAMPLE_USERS=100, SAMPLE_MICROPOSTS=5000, SAMPLE_COMMENTS=50000
@@ -89,4 +89,4 @@ ActiveRecord::Base.transaction do
   puts "  counter cache updated"
 end
 
-puts "Done. BASELINE_DATASET_VERSION=#{DATASET_VERSION}"
+puts "Done. PERFGATE_DATASET_VERSION=#{DATASET_VERSION}"
