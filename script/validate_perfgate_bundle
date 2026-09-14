@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "digest"
+require "json"
+require "json_schemer"
+
+root = File.expand_path(ARGV.fetch(0) do
+  warn "usage: bundle exec ruby script/validate_perfgate_bundle RUN_OR_OUTPUT_DIRECTORY"
+  exit 64
+end)
+
+run_directory = if File.file?(File.join(root, "run.json"))
+                  root
+                else
+                  runs = Dir.glob(File.join(root, "runs", "*"))
+                  abort "expected exactly one run under #{root}, found #{runs.length}" unless runs.one?
+                  runs.first
+                end
+
+run_path = File.join(run_directory, "run.json")
+checksums_path = File.join(run_directory, "checksums.json")
+abort "missing #{run_path}" unless File.file?(run_path)
+abort "missing #{checksums_path}" unless File.file?(checksums_path)
+
+document = JSON.parse(File.read(run_path))
+checksums = JSON.parse(File.read(checksums_path))
+expected = checksums.fetch("run.json")
+actual = "sha256:#{Digest::SHA256.file(run_path).hexdigest}"
+abort "checksum mismatch for #{run_path}" unless expected == actual
+
+gem_root = Gem.loaded_specs.fetch("perfgate").full_gem_path
+schema_path = File.join(gem_root, "schemas", "run-result-v2.schema.json")
+schema = JSONSchemer.schema(JSON.parse(File.read(schema_path)))
+errors = schema.validate(document).to_a
+unless errors.empty?
+  errors.each { |error| warn JSON.generate(error) }
+  abort "run-result v2 schema validation failed with #{errors.length} error(s)"
+end
+
+failed = document.fetch("workloads").reject { |workload| workload["status"] == "completed" }
+abort "#{failed.length} workload(s) did not complete" unless failed.empty?
+
+comparison_schema_path = File.join(gem_root, "schemas", "comparison-result-v2.schema.json")
+comparison_schema = JSONSchemer.schema(JSON.parse(File.read(comparison_schema_path)))
+Dir.glob(File.join(root, "comparisons", "*.json")).sort.each do |comparison_path|
+  comparison = JSON.parse(File.read(comparison_path))
+  comparison_errors = comparison_schema.validate(comparison).to_a
+  unless comparison_errors.empty?
+    comparison_errors.each { |error| warn JSON.generate(error) }
+    abort "comparison-result v2 schema validation failed for #{comparison_path}"
+  end
+
+  digest_path = "#{comparison_path}.sha256"
+  abort "missing #{digest_path}" unless File.file?(digest_path)
+  expected_digest = File.read(digest_path).strip
+  actual_digest = "sha256:#{Digest::SHA256.file(comparison_path).hexdigest}"
+  abort "checksum mismatch for #{comparison_path}" unless expected_digest == actual_digest
+end
+
+puts "valid schema-v2 bundle: #{run_directory}"
