@@ -3,7 +3,10 @@
 /log/*
 !/log/.keep
 /tmp/
-/vendor/
+/vendor/*
+!/vendor/javascript/
+/vendor/javascript/*
+!/vendor/javascript/.keep
 .env
 .baseline/
 .perfgate/
