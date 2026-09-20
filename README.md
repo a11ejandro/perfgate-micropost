@@ -1,9 +1,9 @@
-# Baseline Micropost
+# Perfgate Micropost
 
 A minimal Rails reference application for [Perfgate](https://github.com/a11ejandro/perfgate),
 an open-source CI-native performance assurance tool.
 
-[![Perfgate](https://github.com/a11ejandro/baseline-micropost/actions/workflows/perfgate.yml/badge.svg)](https://github.com/a11ejandro/baseline-micropost/actions/workflows/perfgate.yml)
+[![Perfgate](https://github.com/a11ejandro/perfgate-micropost/actions/workflows/perfgate.yml/badge.svg)](https://github.com/a11ejandro/perfgate-micropost/actions/workflows/perfgate.yml)
 
 This application is **not a production social platform**. It exists to provide a
 simple, deterministic environment for demonstrating how Perfgate detects performance
@@ -13,7 +13,7 @@ regressions in Rails applications.
 
 ## Project purpose
 
-Baseline Micropost demonstrates five canonical Rails workflows (a paginated index,
+Perfgate Micropost demonstrates five canonical Rails workflows (a paginated index,
 a detail page, a search, a write path, and a background job). Performance
 observations recreate a dedicated deterministic dataset of 10 users, 500
 microposts, and 2 500 comments before each observation.
@@ -39,8 +39,8 @@ isolated performance regression that Perfgate is expected to detect.
 **Requirements:** Ruby 3.3+, Docker (for PostgreSQL via docker-compose).
 
 ```bash
-git clone <repo-url> baseline-micropost
-cd baseline-micropost
+git clone https://github.com/a11ejandro/perfgate-micropost.git
+cd perfgate-micropost
 
 # Start PostgreSQL
 docker compose up -d
@@ -142,7 +142,7 @@ The GitHub Actions workflow at
 [.github/workflows/perfgate.yml](.github/workflows/perfgate.yml) is the public
 demo entry point:
 
-- [Perfgate workflow runs](https://github.com/a11ejandro/baseline-micropost/actions/workflows/perfgate.yml)
+- [Perfgate workflow runs](https://github.com/a11ejandro/perfgate-micropost/actions/workflows/perfgate.yml)
 - Example passing PR: TODO
 - Example SQL regression PR: TODO
 - Example duration/allocation regression PR: TODO
@@ -150,8 +150,9 @@ demo entry point:
 
 To make the demo publicly accessible:
 
-1. Push this app to a **public** GitHub repository, ideally
-   `a11ejandro/baseline-micropost` so the badge and links above work as-is.
+1. Keep this app in the public
+   [`a11ejandro/perfgate-micropost`](https://github.com/a11ejandro/perfgate-micropost)
+   repository so the badge and links above resolve to the studied subject.
 2. Keep the Perfgate gem source public. The Gemfile uses the public Git repository,
    pinned by `Gemfile.lock`, so CI can bundle without access to a local checkout.
    To develop both repositories together, use Bundler's ignored local override:
@@ -178,4 +179,5 @@ keys must remain untracked.
 
 ## License
 
-Apache-2.0. See the [Perfgate license](https://github.com/a11ejandro/perfgate/blob/main/LICENSE).
+Apache License 2.0. See [`LICENSE`](LICENSE). Perfgate is a separate work and
+retains its own license.
